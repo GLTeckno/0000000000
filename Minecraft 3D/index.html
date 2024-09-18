@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaveGame Avançado</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB; /* Cor de fundo do céu */
+        }
+        canvas {
+            display: block;
+        }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud">Bloco Atual: Terra</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Configurações iniciais
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Chão
+        const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
+
+        // Luz
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        scene.add(directionalLight);
+
+        // Jogador
+        const playerBody = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        playerBody.position.y = 1;
+        scene.add(playerBody);
+
+        const cameraOffset = new THREE.Vector3(0, 2, 5);
+        camera.position.copy(playerBody.position).add(cameraOffset);
+        camera.lookAt(playerBody.position);
+
+        // Teclado
+        const keyboard = {};
+        document.addEventListener('keydown', (event) => { keyboard[event.code] = true; });
+        document.addEventListener('keyup', (event) => { keyboard[event.code] = false; });
+
+        const blocks = [];
+        const blockTypes = ['Terra', 'Grama', 'Pedra', 'Madeira'];
+        let currentBlockType = 0; // Índice do bloco atual
+
+        // Função para criar blocos
+        function createBlock(x, y, z) {
+            const blockMaterial = new THREE.MeshBasicMaterial({ color: currentBlockType === 0 ? 0x8B4513 : currentBlockType === 1 ? 0x00FF00 : currentBlockType === 2 ? 0xA9A9A9 : 0xD2691E });
+            const block = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), blockMaterial);
+            block.position.set(x, y, z);
+            scene.add(block);
+            blocks.push(block);
+        }
+
+        // Remover bloco
+        function removeBlock(x, z) {
+            const block = blocks.find(b => Math.floor(b.position.x) === x && Math.floor(b.position.z) === z);
+            if (block) {
+                scene.remove(block);
+                blocks.splice(blocks.indexOf(block), 1);
+            }
+        }
+
+        document.addEventListener('click', () => {
+            const x = Math.floor(playerBody.position.x);
+            const z = Math.floor(playerBody.position.z);
+            createBlock(x, 0.5, z);
+            updateHUD();
+        });
+
+        document.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            const x = Math.floor(playerBody.position.x);
+            const z = Math.floor(playerBody.position.z);
+            removeBlock(x, z);
+            updateHUD();
+        });
+
+        // Atualizar HUD
+        function updateHUD() {
+            const hudElement = document.getElementById('hud');
+            hudElement.innerText = `Bloco Atual: ${blockTypes[currentBlockType]}`;
+        }
+
+        function movePlayer() {
+            const velocity = new THREE.Vector3();
+            if (keyboard['KeyW']) velocity.z -= 1;
+            if (keyboard['KeyS']) velocity.z += 1;
+            if (keyboard['KeyA']) velocity.x -= 1;
+            if (keyboard['KeyD']) velocity.x += 1;
+
+            velocity.normalize();
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            direction.y = 0;
+            direction.normalize();
+
+            playerBody.position.add(direction.multiplyScalar(velocity.z * 0.1));
+            playerBody.position.x += velocity.x * 0.1;
+
+            camera.position.copy(playerBody.position).add(cameraOffset);
+            camera.lookAt(playerBody.position);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            movePlayer();
+            renderer.render(scene, camera);
+        }
+
+        // Criar alguns blocos iniciais
+        for (let x = -5; x <= 5; x++) {
+            for (let z = -5; z <= 5; z++) {
+                createBlock(x, 0, z);
+            }
+        }
+
+        // Alternar blocos
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Digit1') currentBlockType = 0; // Terra
+            if (event.code === 'Digit2') currentBlockType = 1; // Grama
+            if (event.code === 'Digit3') currentBlockType = 2; // Pedra
+            if (event.code === 'Digit4') currentBlockType = 3; // Madeira
+            updateHUD();
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+
