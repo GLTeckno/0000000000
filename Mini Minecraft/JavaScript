@@ -1,0 +1,90 @@
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const blockColor = '#00FF00'; // Cor dos blocos
+const playerColor = '#FF0000'; // Cor do jogador
+const blockSize = 50; // Tamanho dos blocos
+
+// Estrutura do mundo
+const world = {};
+const rows = Math.ceil(canvas.height / blockSize);
+const cols = Math.ceil(canvas.width / blockSize);
+
+// Inicializa o mundo com blocos
+for (let x = 0; x < cols; x++) {
+    for (let y = 0; y < rows; y++) {
+        world[`${x},${y}`] = true; // Todos os blocos começam como presentes
+    }
+}
+
+// Posição do jogador
+const player = {
+    x: Math.floor(cols / 2) * blockSize,
+    y: Math.floor(rows / 2) * blockSize,
+};
+
+// Função para desenhar blocos
+function drawBlock(x, y) {
+    ctx.fillStyle = blockColor;
+    ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+}
+
+// Função para desenhar o jogador
+function drawPlayer() {
+    ctx.fillStyle = playerColor;
+    ctx.fillRect(player.x, player.y, blockSize, blockSize); // O jogador ocupa um bloco
+}
+
+// Função para desenhar o mundo
+function drawWorld() {
+    for (let key in world) {
+        const [x, y] = key.split(',').map(Number);
+        if (world[key]) drawBlock(x, y);
+    }
+    drawPlayer();
+}
+
+// Função para remover um bloco
+function breakBlock(x, y) {
+    if (world[`${x},${y}`]) {
+        delete world[`${x},${y}`]; // Remove o bloco do mundo
+    }
+}
+
+// Mapeamento de teclas para movimentação
+window.addEventListener('keydown', (event) => {
+    switch (event.key) {
+        case 'ArrowUp':
+            if (player.y > 0) player.y -= blockSize;
+            break;
+        case 'ArrowDown':
+            if (player.y < canvas.height - blockSize) player.y += blockSize;
+            break;
+        case 'ArrowLeft':
+            if (player.x > 0) player.x -= blockSize;
+            break;
+        case 'ArrowRight':
+            if (player.x < canvas.width - blockSize) player.x += blockSize;
+            break;
+    }
+});
+
+// Interação ao clicar
+canvas.addEventListener('click', (event) => {
+    const x = Math.floor(event.clientX / blockSize);
+    const y = Math.floor(event.clientY / blockSize);
+    breakBlock(x, y); // Quebra o bloco ao clicar
+});
+
+// Loop de animação
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpa a tela
+    drawWorld(); // Desenha o mundo
+    requestAnimationFrame(gameLoop); // Chama o próximo frame
+}
+
+// Inicia o jogo
+gameLoop();
